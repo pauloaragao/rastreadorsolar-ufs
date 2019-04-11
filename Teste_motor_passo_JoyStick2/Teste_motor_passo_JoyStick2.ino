@@ -9,9 +9,9 @@
 
  //Variáveis globais
   int SpR = 2048;
-  int x, y,i,j;
+  int x, y,i;
   int flag = 500;
-  int pos = 1;
+  int pos = 0;
   uint8_t velocidade = 6;
   float ang = 0;
   
@@ -26,43 +26,39 @@ void setup()
 
 void loop(){
   y = analogRead(A0);    // Eixo 1 Y1 - A0
- andarMotor(y);
+  andarMotor(y);
+ 
 }
 
-  void andarMotor(int y){
-    //ELEVACAO  
-  if (y >= 800){
-      for (i = pos; i <= 2048; i++) {
+  void andarMotor(int y){ 
+  if (y >= 800){ //Semi-ciclo positivo
         MotorPasso_el.step(1);
         //Serial.print("Valor do for: ");
         //Serial.println(i);
-        ang = map (i, 0, 2048, 0, 360);
+        ang = map (pos, 0, 2048, 0, 360);
         Serial.print("Angulo: ");
         Serial.println(ang);
-        //Serial.print(" Analogico: ");
-        //Serial.println(y);
+        //Serial.print(" Posicao: ");
+        //Serial.println(pos);
         delay(10);
+        pos = pos + 1;
         fecharCicloMaior();
-        pararMotorCima();
-        }
    }else if (y <= 300){
-        for (i = pos; i >= 1; i--) {
         MotorPasso_el.step(-1);
         //Serial.print("Valor do for: ");
         //Serial.println(i);
-        ang = map (i, 0, 2048, 0, 360);
+        ang = map (pos, 0, 2048, 0, 360);
         Serial.print("Angulo: ");
         Serial.println(ang);
         //Serial.print(" Analogico: ");
         //Serial.println(y);
         delay(10);
+        pos = pos - 1;
         fecharCicloMenor();
-        pararMotorBaixo();
         }
      }
-  }
 
-  void pararMotorCima(){
+ /* void pararMotorCima(){
     flag = analogRead(A0);
     //Serial.print("Flag: ");
     //Serial.println(flag);  
@@ -82,16 +78,16 @@ void loop(){
         i = -1;
         Serial.println("Parar motor!!!!!");
       }
-  }
+  }*/
 
   void fecharCicloMaior(){
-    if (i == 2047){
+    if (pos == 2049){
       pos = 0;
     }
   }
 
   void fecharCicloMenor(){
-    if (i == 1){
+    if (pos == -1){
       pos = 2048;
     }
   }
