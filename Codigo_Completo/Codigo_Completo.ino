@@ -172,7 +172,7 @@ void horaAtual(){
 
 void posicionarAzimute(){
   if (azim + (360 - Azimute_ajustado) < abs((Azimute_ajustado - azim) ) ) {
-      pulsos_movimentacao_azimute = (azim + (360 - Azimute_ajustado)  ) * 35.55 ;
+      pulsos_movimentacao_azimute = (azim + (360 - Azimute_ajustado)  ) * 35.55;
       for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
         myStepper_a.step(-1);
         delay(10);
@@ -194,7 +194,7 @@ void posicionarElevacao(){
     ha = pulsos_movimentacao_elevacao / (abs (pulsos_movimentacao_elevacao));
     for (i = 0; i <= (abs (pulsos_movimentacao_elevacao)); i++) {
       myStepper_e.step(ha);
-      delay(10);
+      delay(35);
     }
 
     elev = alfa_elevacao;
@@ -245,10 +245,11 @@ void armazenarSD(){
 }
 
 void printTela(){
-  Serial.print (" Azimute calculado: "); Serial.print (Azimute_ajustado); Serial.print (" Elevacao calculado: "); Serial.print (alfa_elevacao);
-  Serial.print (" hora: "); Serial.print (h); Serial.print (":"); Serial.print (m); Serial.print (":"); Serial.print (s);
-  Serial.print (" Rad Direta: "); Serial.print (valorSensor_pirel); Serial.print (" Rad global: "); Serial.print (valorSensor_piran); Serial.print (" Rad difusa: "); Serial.println (Rad_difusa);
-  delay (600000);  // 10 minutos entre uma movimentação
+  Serial.println();
+  Serial.print (" Azimute calculado: "); Serial.println (Azimute_ajustado); Serial.print (" Elevacao calculado: "); Serial.println (alfa_elevacao);
+  Serial.print (" hora: "); Serial.print (h); Serial.print (":"); Serial.print (m); Serial.print (":"); Serial.println (s);
+  Serial.print (" Rad Direta: "); Serial.println (valorSensor_pirel); Serial.print (" Rad global: "); Serial.println (valorSensor_piran); 
+  Serial.print (" Rad difusa: "); Serial.println (Rad_difusa);
 }
 
 void setup() {
@@ -281,20 +282,21 @@ void loop() {
       horaAtual();
     //CALCULO DAS COORDENADAS CELESTES LOCAIS:
       coordenadasCelestes();
-      delay (1000);
+      delay (100);
     //POSICIONAR NO AZIMUTE:
       posicionarAzimute();
-      delay (2000);
+      delay (100);
     //POSICIONAR NA ELEVACAO
-     posicionarElevacao();
-     delay(3000);
+      posicionarElevacao();
+      delay(100);
      
     /*Coleta de Dados dos Sensores:*/
     //Coleta e Calcula sensores
-    coletarSensores();
+      coletarSensores();
     //Armazena Valores no Cartao SD:
-    armazenarSD();
+      armazenarSD();
     //Monitorar valores na tela
-    printTela();
+      printTela();
+    delay(300000);
   }
 }
