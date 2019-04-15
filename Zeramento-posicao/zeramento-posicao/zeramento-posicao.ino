@@ -18,7 +18,7 @@
     MechaQMC5883 qmc; //Definindo sensor magnetometro
     int qmcx, qmcy, qmcz; //Definindo variaveis para coordenadas
     int azimuth = 0; //Variavel para o Azimuth
-    bool running = false;
+    int estadoCodigo = 0;
     int calibracao = 10;
     
   //Definindo motores
@@ -34,7 +34,7 @@ void setup() {
 
 void loop() {
   //Inicialização do Rastreador:
-  if (running == false){
+  if (estadoCodigo == 0){
     zeramentoPosicao();
   }
   //Teste do Norte:
@@ -60,6 +60,6 @@ void zeramentoPosicao(){
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
   else if (azimuth == 125){
-    running = true;
+    estadoCodigo = 1;
   }
 }
