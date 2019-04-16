@@ -27,53 +27,48 @@ RTC: A2, A1;
 
 //Variaveis de Ajuste
   //Variavel de passo para o codigo
-  int passoCodigo = 0;
+      int passoCodigo = 0;
   //Equacao de Calculo de Azimuth e Elevacao
-  double LL = 33.10;                            //Longitude do Local//
-  double LH = 30;                            //Longitude do Meridiano de Greenwich//
-  double AO = 0;                            //Adiantamento do horário de Verão//
-  //double TO;                            //Horario local//
-  double fi_latitude = -10.93;                   //Latitude do Local//
+      double LL = -37.10;                            //Longitude do Local//
+      double LH = 30;                            //Longitude do Meridiano de Greenwich//
+      double AO = 0;                            //Adiantamento do horário de Verão//
+      double fi_latitude = -10.93;                   //Latitude do Local//
   //Variavel para armazenar elevacao e azimuth atuais: 
-  int elev = 0;
-  int azim = 0;
-  
-  float Direta_ref, ajuste_elev_1, ajuste_elev_2, ajuste_azim_1, ajuste_azim_2;
-  int i, j, ha, az;
-  
-  float    alfa_elevacao_completo;
-  int    azimute_int;
-  double A;
-  double f;
-  double delta_declinacao ;
-  double delta_declinacao_graus ;
-  double eq_tempo ;
-  double eq_tempo_horas ;
-  double H_sol ;
-  double Omega_horario_angular ;
-  double zenite ;
-  double zenite_graus ;
-  double alfa_elevacao ;
-  double psi_azimute ;
-  double psi_azimute_graus ;
-  double Azimute_ajustado ;
-
-  int e, correcao_e, correcao_a, a , g, posic_ant_azim;
-  float hora_bb;
-  int graus , azimute_anterior;
-  float dda;
-  int pulsos_movimentacao_azimute;
-  int pulsos_movimentacao_elevacao;
-  int sensor_pirel = 1; //pino referente ao pireliômetro
-  int sensor_piran = 0; //pino referente ao piranômetro
-  //variável usada para ler o valor do sensor em tempo real.
+      int elev = 0;
+      int azim = 0;
+  //Variaveis auxiliares
+      double A; //Parametro para calculo da declinacao
+      double f; //Parametro para calculo do tempo
+      double delta_declinacao; //Declinacao em radianos
+      double delta_declinacao_graus; //Declinacao em graus 
+      double eq_tempo; //Variavel que ajusta valor de hora real com a aparente (Minutos)
+      double eq_tempo_horas; //Variavel transforma para horas 
+      double H_sol; //Horario solar 
+      double Omega_horario_angular; //Hora angular do sol
+      double zenite; //Angulo de Zenite em radianos
+      double zenite_graus;  //Angulo de Zenite em graus
+      double alfa_elevacao; //Angulo de Elevacaol
+      double psi_azimute; //Angulo de azimute em radianos 
+      double psi_azimute_graus ; //Angulo de azimute em graus
+      double Azimute_ajustado ; //Angulo azimute a partir do norte
+      int i, j; //Variaveis auxiliares para laços 
+      int ha; //Variavel para definicao do sentido da elevacao
+      float hora_bb; // HH:MM em somente horas (Conversao)
+      int graus ; //Valor do magnetometro depois da parametrização
+      float dda;// Número do dia ano
+      int pulsos_movimentacao_azimute; //variavel para pulsos de movimentacao
+      int pulsos_movimentacao_elevacao; //variavel para pulsos de movimentacao
+      int sensor_pirel = 1; //pino referente ao pireliômetro
+      int sensor_piran = 0; //pino referente ao piranômetro
+      
+//Variável usada para ler o valor do sensor em tempo real.
   int valorSensor_pirel, valorSensor_piran, Rad_difusa;
 
-// Motor de Passo
-  const int stepsPerRevolution_e = 16000;
-  const int stepsPerRevolution_a = 12800;
-  Stepper myStepper_a(stepsPerRevolution_e, 2, 3, 5, 6);
-  Stepper myStepper_e(stepsPerRevolution_a, 7, 8, 9, 10);
+//Configurando o Motor de Passo
+  const int stepsPerRevolution_e = 16000; // Quantidade de pulsos por revolução do motor responsável pela Elevação
+  const int stepsPerRevolution_a = 12800;// Quantidade de pulsos por revolução do motor responsável pelo Azimute
+  Stepper myStepper_a(stepsPerRevolution_e, 2, 3, 5, 6); //Configurando Motor de Passo Azimute
+  Stepper myStepper_e(stepsPerRevolution_a, 7, 8, 9, 10); //Configurando Motor de Passo Elevação
 
 
 void initSDCard(){
@@ -106,18 +101,13 @@ void initRTC(){
   ano = data.substring(6, 8);
 
   hora_bb = h.toFloat() + m.toFloat() / 60 ;
-  dda = ((275*mes.toInt()/9)-30+dia.toInt()-2);
-    
-  if (mes < 3){ //Janeiro e Fevereiro e ano não bissexto
-    dda = dda + 2;
-  }else if ((ano.toInt() % 4 == 0 && (ano.toInt() % 400 == 0 || ano.toInt() % 100 != 0)) and mes > 2){//Verifica Ano Bissexto e se é maior que Fevereiro
-    dda = dda + 1;  
-  }
+ 
+  calculoDDA();
 }
 
 void initDeclinacao(){
-  A = (2 * 3.141592 * (dda - 1)) / 365 ; //
-  f = (2 * 3.141592 * (dda - 81)) / 364 ; //PARÂMETROS
+  A = (2 * 3.141592 * (dda - 1)) / 365 ; //Parametro para calculo da declinacao
+  f = (2 * 3.141592 * (dda - 81)) / 364 ; //Parametro para calculo do tempo
   delta_declinacao  = 0.006918 - 0.399912 * cos(A) + 0.070257 * sin(A) - 0.006758 * cos(2 * A) + 0.000907 * sin(2 * A) - 0.002697 * cos(3 * A) + 0.00148 * sin(3 * A); //Declincao solar//
   delta_declinacao_graus = delta_declinacao * 57.2958 ;
 }
@@ -131,6 +121,94 @@ void initMPU(){
 void initCompass(){
   qmc.init();
   qmc.setMode(Mode_Continuous, ODR_200Hz, RNG_2G, OSR_256);
+}
+
+void calculoDDA(){
+   if (ano.toInt() % 4 == 0 && (ano.toInt() % 400 == 0 || ano.toInt() % 100 != 0)) {
+    switch (mes.toInt()) {
+      case 1:
+        dda = dia.toFloat();
+        break;
+      case 2:
+        dda = dia.toFloat() + 31;
+        break;
+      case 3:
+        dda = dia.toFloat() + 60;
+        break;
+      case 4:
+        dda = dia.toFloat() + 91;
+        break;
+      case 5:
+        dda = dia.toFloat() + 121;
+        break;
+      case 6:
+        dda = dia.toFloat() + 152;
+        break;
+      case 7:
+        dda = dia.toFloat() + 182;
+        break;
+      case 8:
+        dda = dia.toFloat() + 213;
+        break;
+      case 9:
+        dda = dia.toFloat() + 244;
+        break;
+      case 10:
+        dda = dia.toFloat() + 274;
+        break;
+      case 11:
+        dda = dia.toFloat() + 305;
+        break;
+      case 12:
+        dda = dia.toFloat() + 335;
+        break;
+      default:
+        break;
+    }
+  }
+
+  else {
+    switch (mes.toInt()) {
+      case 1:
+        dda = dia.toFloat();
+        break;
+      case 2:
+        dda = dia.toFloat() + 31;
+        break;
+      case 3:
+        dda = dia.toFloat() + 59;
+        break;
+      case 4:
+        dda = dia.toFloat() + 90;
+        break;
+      case 5:
+        dda = dia.toFloat() + 120;
+        break;
+      case 6:
+        dda = dia.toFloat() + 151;
+        break;
+      case 7:
+        dda = dia.toFloat() + 181;
+        break;
+      case 8:
+        dda = dia.toFloat() + 212;
+        break;
+      case 9:
+        dda = dia.toFloat() + 243;
+        break;
+      case 10:
+        dda = dia.toFloat() + 273;
+        break;
+      case 11:
+        dda = dia.toFloat() + 304;
+        break;
+      case 12:
+        dda = dia.toFloat() + 334;
+        break;
+      default:
+        break;
+    }
+  }
 }
 
 void coordenadasCelestes(){
@@ -190,13 +268,12 @@ void posicionarAzimute(){
 }
 
 void posicionarElevacao(){
-  pulsos_movimentacao_elevacao = (elev - alfa_elevacao ) * 44.44 ;
-    ha = pulsos_movimentacao_elevacao / (abs (pulsos_movimentacao_elevacao));
+  pulsos_movimentacao_elevacao = (elev - alfa_elevacao ) * 44.44 ; //Define o pulso da movimentacao da elevacao
+  ha = pulsos_movimentacao_elevacao / (abs (pulsos_movimentacao_elevacao)); //Define o sentido da Elevacao
     for (i = 0; i <= (abs (pulsos_movimentacao_elevacao)); i++) {
       myStepper_e.step(ha);
       delay(35);
     }
-
     elev = alfa_elevacao;
 }
 
