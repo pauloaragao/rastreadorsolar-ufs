@@ -14,7 +14,18 @@ RTC: A2, A1;
 
 */
 
-
+//Definindo Constantes
+  //Definindo entradas do motor de passo X:
+  #define IN2 2
+  #define IN3 3
+  #define IN5 5
+  #define IN6 6
+  //Motor Y
+  #define IN7 7
+  #define IN8 8
+  #define IN9 9
+  #define IN10 10
+  
 //Acelerometro:
   MPU6050 mpu; //Variavel para acelerometro
 // SD CARD
@@ -23,7 +34,6 @@ RTC: A2, A1;
   MechaQMC5883 qmc; //Variavel para Magnetometro
   int qmcx, qmcy, qmcz; //Definindo variaveis para coordenadas
   int azimuth = 0; //Variavel para o Azimuth
-  int calibracao = 10;
 //RTC
   DS1307 rtc(A2, A3); //Portas Analogicas A2 e A3 RTC
   String data, hora, h, m, s, dia, mes, ano; //Variaveis para RTC
@@ -68,10 +78,10 @@ RTC: A2, A1;
   int valorSensor_pirel, valorSensor_piran, Rad_difusa;
 
 //Configurando o Motor de Passo
-  const int stepsPerRevolution_e = 16000; // Quantidade de pulsos por revolução do motor responsável pela Elevação
-  const int stepsPerRevolution_a = 12800;// Quantidade de pulsos por revolução do motor responsável pelo Azimute
-  Stepper myStepper_a(stepsPerRevolution_e, 2, 3, 5, 6); //Configurando Motor de Passo Azimute
-  Stepper myStepper_e(stepsPerRevolution_a, 7, 8, 9, 10); //Configurando Motor de Passo Elevação
+  int SpRX = 12800; // Quantidade de pulsos por revolução do motor responsável pela Elevação
+  int SpRY = 16000;// Quantidade de pulsos por revolução do motor responsável pelo Azimute
+  Stepper MotorPasso_X(SpRX, IN2, IN3, IN5, IN6); //Configurando Motor de Passo Azimute
+  Stepper MotorPasso_Y(SpRY, IN7, IN8, IN9, IN10); //Configurando Motor de Passo Elevação
 
 
 void initSDCard(){
@@ -255,14 +265,14 @@ void posicionarAzimute(){
   if (azim + (360 - Azimute_ajustado) < abs((Azimute_ajustado - azim) ) ) {
       pulsos_movimentacao_azimute = (azim + (360 - Azimute_ajustado)  ) * 35.55;
       for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
-        myStepper_a.step(-1);
+        MotorPasso_X.step(-1);
         delay(10);
       }
     }
     else   {
       pulsos_movimentacao_azimute = (Azimute_ajustado - azim) * 35.55 ;
       for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
-        myStepper_a.step(1);
+        MotorPasso_X.step(1);
         delay(10);
       }
     }
@@ -274,7 +284,7 @@ void posicionarElevacao(){
   pulsos_movimentacao_elevacao = (elev - alfa_elevacao ) * 44.44 ; //Define o pulso da movimentacao da elevacao
   ha = pulsos_movimentacao_elevacao / (abs (pulsos_movimentacao_elevacao)); //Define o sentido da Elevacao
     for (i = 0; i <= (abs (pulsos_movimentacao_elevacao)); i++) {
-      myStepper_e.step(ha);
+      MotorPasso_Y.step(ha);
       delay(35);
     }
     elev = alfa_elevacao;
@@ -333,21 +343,24 @@ void printTela(){
 }
 
 void zeramentoPosicao(){
-  qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
-    if (azimuth < 120 ) { //Testa se está no limite inferior
+  qmc.read(&qmcx, &qmcy, &qmcz, &azimuth); //Print teste posicao
+     if (azimuth < 115 ) { //Testa se está no limite inferior
       //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
-      myStepper_a.step(1); //Anda sentido horario
-      delay(10); //Frequencia de pulso para o motor
+      Serial.println("Andar horário");
+      MotorPasso_X.step(1);
+      delay(10);
      }
-    else if ( azimuth > 130 ) { //Testa se está no limite superior
+    else if ( azimuth > 117) { //Testa se está no limite superior
       //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
-      myStepper_a.step(-1); //Anda no senti antihorario
-      delay(10); //Frequencia de pulso para motor
+      Serial.println("Andar Anti-horário");
+      MotorPasso_X.step(-1);
+      delay(10);
     }
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
-  else if (azimuth == 125){
+  else if ((azimuth >= 115)and(azimuth <= 117)){
     estadoCodigo = 1;
+    Serial.println("Parei!!");
   }
 }
 
@@ -367,8 +380,8 @@ void setup() {
     //COMPASS
       initCompass();
     //Motores
-      myStepper_e.setSpeed(1); //Motor para Elevacao setando velocidade
-      myStepper_a.setSpeed(1);  //Motor para Azimute setando velocidade
+      MotorPasso_Y.setSpeed(1); //Motor para Elevacao setando velocidade
+      MotorPasso_X.setSpeed(1);  //Motor para Azimute setando velocidade
       estadoCodigo = 0;
 }
 
@@ -377,19 +390,29 @@ void setup() {
 
 void loop() {
   delay(2000);
+  //Inicialização do Rastreador:
   if (estadoCodigo == 0){
-    Serial.println("Zeramento Posição: ");
     zeramentoPosicao();
+    Serial.println(azimuth);
+    Serial.print("Estado Logico: ");
+    Serial.println(estadoCodigo);
   }
   //Teste do Norte:
-  else if (estadoCodigo == 1){
-      qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
+  else{
+    //Serial.print("Estado Logico: ");
+    //Serial.println(estadoCodigo);
+    qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
+    Serial.print("Azimuth: ");
+    Serial.println(azimuth);
+
+
+     qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
       Serial.print("Azimuth: ");
       Serial.println(azimuth);
       /*Posicionamento Teórico*/
       //HORA ATUAL:
         horaAtual();
-      //CALCULO DAS COORDENADAS CELESTES LOCAIS:
+        //CALCULO DAS COORDENADAS CELESTES LOCAIS:
         coordenadasCelestes();
         delay (100);
       //POSICIONAR NO AZIMUTE:
@@ -408,5 +431,4 @@ void loop() {
         printTela();
       delay(300000); 
   }
-  Serial.println("Parado!!");
 }

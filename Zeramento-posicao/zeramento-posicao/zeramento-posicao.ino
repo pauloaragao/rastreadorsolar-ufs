@@ -37,30 +37,48 @@ void loop() {
   if (estadoCodigo == 0){
     zeramentoPosicao();
     Serial.println(azimuth);
+    Serial.print("Estado Logico: ");
+    Serial.println(estadoCodigo);
   }
   //Teste do Norte:
-    else{
+  else{
+    //Serial.print("Estado Logico: ");
+    //Serial.println(estadoCodigo);
     qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
     Serial.print("Azimuth: ");
     Serial.println(azimuth);
+
+     /*Posicionamento Teórico*/
+      //HORA ATUAL:
+        horaAtual();
+        //CALCULO DAS COORDENADAS CELESTES LOCAIS:
+        coordenadasCelestes();
+        delay (100);
+      //POSICIONAR NO AZIMUTE:
+        posicionarAzimute();
+        delay (100);
+      //POSICIONAR NA ELEVACAO
+        posicionarElevacao();
+        delay(100);
+       
   }
 }
 
 void zeramentoPosicao(){
   qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
-    if (azimuth < 120 ) { //Testa se está no limite inferior
+     if (azimuth < 115 ) { //Testa se está no limite inferior
       //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
-      MotorPasso_X.step(-1); //Anda sentido horario
+      MotorPasso_X.step(1); //Anda sentido horario
       delay(10); //Frequencia de pulso para o motor
      }
-    else if ( azimuth > 130 ) { //Testa se está no limite superior
+    else if ( azimuth > 117) { //Testa se está no limite superior
       //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
-      MotorPasso_X.step(1); //Anda no senti antihorario
+      MotorPasso_X.step(-1); //Anda no senti antihorario
       delay(10); //Frequencia de pulso para motor
     }
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
-  else if ((azimuth >= 123) and (azimuth <= 127)){
+  else if ((azimuth >= 115)and(azimuth <= 117)){
     estadoCodigo = 1;
   }
 }
