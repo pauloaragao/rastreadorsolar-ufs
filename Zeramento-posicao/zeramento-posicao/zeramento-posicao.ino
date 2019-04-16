@@ -36,6 +36,7 @@ void loop() {
   //Inicialização do Rastreador:
   if (estadoCodigo == 0){
     zeramentoPosicao();
+    Serial.println(azimuth);
   }
   //Teste do Norte:
     else{
@@ -49,17 +50,17 @@ void zeramentoPosicao(){
   qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
     if (azimuth < 120 ) { //Testa se está no limite inferior
       //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
-      MotorPasso_X.step(1); //Anda sentido horario
-      delay(35); //Frequencia de pulso para o motor
+      MotorPasso_X.step(-1); //Anda sentido horario
+      delay(10); //Frequencia de pulso para o motor
      }
     else if ( azimuth > 130 ) { //Testa se está no limite superior
       //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
-      MotorPasso_X.step(-1); //Anda no senti antihorario
-      delay(35); //Frequencia de pulso para motor
+      MotorPasso_X.step(1); //Anda no senti antihorario
+      delay(10); //Frequencia de pulso para motor
     }
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
-  else if (azimuth == 125){
+  else if ((azimuth >= 123) and (azimuth <= 127)){
     estadoCodigo = 1;
   }
 }

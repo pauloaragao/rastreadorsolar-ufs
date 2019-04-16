@@ -21,13 +21,16 @@ RTC: A2, A1;
   const int chipSelect = 53;  //Variavel para o SDCard
 //Magnetometro
   MechaQMC5883 qmc; //Variavel para Magnetometro
+  int qmcx, qmcy, qmcz; //Definindo variaveis para coordenadas
+  int azimuth = 0; //Variavel para o Azimuth
+  int calibracao = 10;
 //RTC
   DS1307 rtc(A2, A3); //Portas Analogicas A2 e A3 RTC
   String data, hora, h, m, s, dia, mes, ano; //Variaveis para RTC
 
 //Variaveis de Ajuste
   //Variavel de passo para o codigo
-      int passoCodigo = 0;
+      int estadoCodigo;
   //Equacao de Calculo de Azimuth e Elevacao
       double LL = -37.10;                            //Longitude do Local//
       double LH = 30;                            //Longitude do Meridiano de Greenwich//
@@ -329,51 +332,81 @@ void printTela(){
   Serial.print (" Rad difusa: "); Serial.println (Rad_difusa);
 }
 
+void zeramentoPosicao(){
+  qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
+    if (azimuth < 120 ) { //Testa se está no limite inferior
+      //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
+      myStepper_a.step(1); //Anda sentido horario
+      delay(10); //Frequencia de pulso para o motor
+     }
+    else if ( azimuth > 130 ) { //Testa se está no limite superior
+      //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
+      myStepper_a.step(-1); //Anda no senti antihorario
+      delay(10); //Frequencia de pulso para motor
+    }
+  //Serial.print("Azimuth: ");
+  //Serial.println(azimuth);
+  else if (azimuth == 125){
+    estadoCodigo = 1;
+  }
+}
+
 void setup() {
   Wire.begin();
   Serial.begin(9600);
-  // SD CARD
-    initSDCard();
-  //RTC
-    initRTC();
-  //Declinacao
-    initDeclinacao();
-  //MPU
-    initMPU();
-  //COMPASS
-    initCompass();
-  //Motores
-    myStepper_e.setSpeed(1); //Motor para Elevacao setando velocidade
-    myStepper_a.setSpeed(1);  //Motor para Azimute setando velocidade
-
+    // SD CARD
+      initSDCard();
+    //RTC
+      initRTC();
+    //Magnetometro
+      qmc.init(); //Inicializando Magnetometro
+    //Declinacao
+      initDeclinacao();
+    //MPU
+      initMPU();
+    //COMPASS
+      initCompass();
+    //Motores
+      myStepper_e.setSpeed(1); //Motor para Elevacao setando velocidade
+      myStepper_a.setSpeed(1);  //Motor para Azimute setando velocidade
+      estadoCodigo = 0;
 }
+
 
 
 
 void loop() {
   delay(2000);
-  //RASTREAMENTO
-  if(hora_bb <= 17) {
-    /*Posicionamento Teórico*/
-    //HORA ATUAL:
-      horaAtual();
-    //CALCULO DAS COORDENADAS CELESTES LOCAIS:
-      coordenadasCelestes();
-      delay (100);
-    //POSICIONAR NO AZIMUTE:
-      posicionarAzimute();
-      delay (100);
-    //POSICIONAR NA ELEVACAO
-      posicionarElevacao();
-      delay(100);
-     
-    /*Coleta de Dados dos Sensores:*/
-    //Coleta e Calcula sensores
-      coletarSensores();
-    //Armazena Valores no Cartao SD:
-      armazenarSD();
-    //Monitorar valores na tela
-      printTela();
-    delay(300000);
+  if (estadoCodigo == 0){
+    Serial.println("Zeramento Posição: ");
+    zeramentoPosicao();
   }
+  //Teste do Norte:
+  else if (estadoCodigo == 1){
+      qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
+      Serial.print("Azimuth: ");
+      Serial.println(azimuth);
+      /*Posicionamento Teórico*/
+      //HORA ATUAL:
+        horaAtual();
+      //CALCULO DAS COORDENADAS CELESTES LOCAIS:
+        coordenadasCelestes();
+        delay (100);
+      //POSICIONAR NO AZIMUTE:
+        posicionarAzimute();
+        delay (100);
+      //POSICIONAR NA ELEVACAO
+        posicionarElevacao();
+        delay(100);
+       
+      /*Coleta de Dados dos Sensores:*/
+      //Coleta e Calcula sensores
+        coletarSensores();
+      //Armazena Valores no Cartao SD:
+        armazenarSD();
+      //Monitorar valores na tela
+        printTela();
+      delay(300000); 
+  }
+  Serial.println("Parado!!");
 }
