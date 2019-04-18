@@ -57,7 +57,7 @@
          int pulsos_movimentacao_elevacao; //variavel para pulsos de movimentacao
          int elev = 0;
          int ha; //Variavel para definicao do sentido da elevacao
-         
+         int correcao_e;
          
     //Motor de Passo:
       int SpRX = 12800; //Definindo pulso por revolução do motor X
@@ -82,6 +82,7 @@
 
     //Acelerometro:
         MPU6050 mpu; //Variavel para acelerometro
+        int roll; //Variavel global para o roll
 
         
   //Definindo motores
@@ -106,6 +107,7 @@ void loop() {
   //Inicialização do Rastreador:
   switch (estadoCodigo) {
     case (0):
+    zeramentoElevacao();
     zeramentoPosicao();
     Serial.println(azimuth);
     Serial.print("Estado Logico: ");
@@ -119,13 +121,15 @@ void loop() {
     Serial.println(azimuth);
     Serial.print("DDA: ");
     Serial.println(dda);
-    delay(3000);
+    delay(10000);
     estadoCodigo = 2;      
     break;
   default:
     horaAtual();
     coordenadasCelestes();
     posicionarAzimute();
+    delay(2000);
+    posicionarElevacao();
     Serial.println();
     Serial.print("Azimute Ajustado: ");
     Serial.println(Azimute_ajustado);
@@ -327,11 +331,32 @@ void posicionarElevacao(){
   ha = pulsos_movimentacao_elevacao / (abs (pulsos_movimentacao_elevacao)); //Define o sentido da Elevacao
     for (i = 0; i <= (abs (pulsos_movimentacao_elevacao)); i++) {
       MotorPasso_Y.step(ha);
-      delay(35);
+      delay(10);
     }
     elev = alfa_elevacao;
 }
 
+void zeramentoElevacao(){
+  // Read normalized values
+  Vector normAccel = mpu.readNormalizeAccel();
+  roll = (atan2(normAccel.YAxis, normAccel.ZAxis) * 180.0) / M_PI;
+  Serial.print("Roll: ");
+  Serial.println(roll);
+
+    if (roll < 1 ) { //Testa se está no limite inferior
+      //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
+      MotorPasso_Y.step(-1); //Anda sentido horario
+      delay(10); //Frequencia de pulso para o motor
+     }
+    else if (roll > 1) { //Testa se está no limite superior
+      //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
+      MotorPasso_Y.step(1); //Anda no senti antihorario
+      delay(10); //Frequencia de pulso para motor
+    }
+    else if ((roll == 1)and(azimuth == 115)){
+      estadoCodigo = 1;
+    }
+}
 
 void zeramentoPosicao(){
   qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
@@ -347,7 +372,7 @@ void zeramentoPosicao(){
     }
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
-  else if (azimuth == 115){
+  else if ((azimuth == 115)and(roll==1)){
     estadoCodigo = 1;
   }
 }
