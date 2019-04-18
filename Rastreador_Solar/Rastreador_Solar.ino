@@ -370,8 +370,6 @@ void posicionarAzimute(){
   Serial.println(azim);   
   if (azim + (360 - Azimute_ajustado) < abs((Azimute_ajustado - azim) ) ) {
       pulsos_movimentacao_azimute = (azim + (360 - Azimute_ajustado)  ) * 35.55;
-      Serial.print("Pulso Movimentacao Azimute: ");
-      Serial.println(pulsos_movimentacao_azimute);
       for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
         MotorPasso_X.step(-1);
         delay(10);
@@ -384,6 +382,8 @@ void posicionarAzimute(){
         delay(10);
       }
     }
+    Serial.print("Pulso Movimentacao Azimute: ");
+    Serial.println(pulsos_movimentacao_azimute);
     azim = Azimute_ajustado;
 }
 
