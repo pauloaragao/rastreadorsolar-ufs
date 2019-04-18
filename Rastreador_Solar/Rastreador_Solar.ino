@@ -1,5 +1,5 @@
 /*
-* Rastreador Solar  Laboratório de Conversao de Energias - Universidade Federal de Sergipe
+* Rastreador Solar - Laboratório de Conversao de Energia - Universidade Federal de Sergipe
 * Discentes: José Orlando Rodrigues Santos, Paulo Vitor Aragão Silva, Henrique Silveira Alves Marques
 * Orientador: Douglas Bressan Riffel
 * 
@@ -10,7 +10,7 @@
 * 
 * I/Os Utilizadas:
 *
-* Última Alteração:
+* Última Alteração: 18/04/2019
 * Alterações para teste: ArmazenarSD(); -> Colocar nome do arquivo , initRTC() -> Ajusta horário e dia
 */
 
@@ -51,7 +51,7 @@
         /*Parametros para busca do azimute*/
         int i, j; //Variaveis auxiliares para laços
         double Azimute_ajustado ; //Angulo azimute a partir do norte
-        int azim = 0;
+        double azim = 0; //Passado
         int pulsos_movimentacao_azimute; //variavel para pulsos de movimentacao
        
         
@@ -72,7 +72,7 @@
 
          /*Parametros para busca da elevacao */
          int pulsos_movimentacao_elevacao; //variavel para pulsos de movimentacao
-         int elev = 0;
+         double elev = 0;
          int ha; //Variavel para definicao do sentido da elevacao
 
          /*Variaveis para coleta dos sensores*/
@@ -84,6 +84,7 @@
          /*Variavel do cartao SD*/
          File dataFile;//Variavel para armazenamento do arquivo
          const int chipSelect = 53;  //Variavel para o SDCard
+         int cont; //cont é para armazenar passos de coleta
 
          
     //Motor de Passo:
@@ -95,7 +96,7 @@
       MechaQMC5883 qmc; //Definindo sensor magnetometro
       int qmcx, qmcy, qmcz; //Definindo variaveis para coordenadas
       int azimuth = 0; //Variavel para o Azimuth
-      int estadoCodigo = 0;
+      int estadoCodigo;
       int calibracao = 10;
 
     //Sensor RTC
@@ -128,45 +129,61 @@ void setup() {
   
   MotorPasso_X.setSpeed(velocidade); //Configurando motor de passo com velocidade
   MotorPasso_Y.setSpeed(velocidade); //Configurando motor de passo com velocidade
+
+  estadoCodigo = 0;
 }
 
 void loop() {
   //Inicialização do Rastreador:
   switch (estadoCodigo) {
     case (0):
-    zeramentoElevacao();
-    zeramentoPosicao();
-    Serial.print("Azimute: ");
-    Serial.println(azimuth);
+      zeramentoElevacao();
+      Serial.print("Estado Logico: ");
+      Serial.println(estadoCodigo);
+      Serial.print("Elevacao: ");
+      Serial.println(azimuth);  
+      break;
+    case (1):
+      zeramentoPosicao();
+      Serial.print("Estado Logico: ");
+      Serial.println(estadoCodigo);
+      Serial.print("Azimute: ");
+      Serial.println(azimuth);
+      break;
+  case (2):
     Serial.print("Estado Logico: ");
     Serial.println(estadoCodigo);
-    break;
-  case (1):
-    //Serial.print("Estado Logico: ");
-    //Serial.println(estadoCodigo);
     qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
-    Serial.print("Azimuth: ");
-    Serial.println(azimuth);
-    Serial.print("DDA: ");
-    Serial.println(dda);
     delay(5000);
-    estadoCodigo = 2;      
-    break;
-  default:
     horaAtual();
     coordenadasCelestes();
     posicionarAzimute();
     delay(2000);
     posicionarElevacao();
-    Serial.println();
+    cont = 0;
+    estadoCodigo = 3;
+    Serial.print("Azimuth: ");
+    Serial.println(azimuth);
+    Serial.print("DDA: ");
+    Serial.println(dda);
     Serial.print("Azimute Ajustado: ");
     Serial.println(Azimute_ajustado);
     Serial.print("Elevacao Ajustado: ");
     Serial.println(alfa_elevacao);
+    break;
+  default:
+    Serial.println();
     coletarSensores();
     printTela();
     armazenarSD();
-    delay(5000);
+    cont++;
+    Serial.print("Contador do Estágio de Coleta: ");
+    Serial.println(cont);
+    if (cont == 240){
+      estadoCodigo = 2;
+      Serial.println("_______________________________________________________________________________________");
+    }
+    delay(1000);
     // statements
     break;
   }
@@ -188,8 +205,8 @@ void initSDCard(){
 void initRTC(){
   rtc.halt(false);
   rtc.setDOW(SATURDAY);       //Define o dia da semana
-  rtc.setTime(14, 00, 00);    //Define o horario
-  rtc.setDate(17, 04, 2019);  //Define o dia, mes e ano
+  rtc.setTime(9, 00, 00);    //Define o horario
+  rtc.setDate(18, 04, 2019);  //Define o dia, mes e ano
   //Definicoes do pino SQW/Out
   rtc.setSQWRate(SQW_RATE_1);
   rtc.enableSQW(true);
@@ -322,7 +339,7 @@ void horaAtual(){
     ano = data.substring(6, 8);
 
     hora_bb = h.toFloat() + m.toFloat() / 60 ;
-    Serial.print(" Hora atual em decimal: ");  Serial.print(hora_bb);
+    Serial.print(" Hora atual em decimal: ");  Serial.println(hora_bb);
 }
 
 void coordenadasCelestes(){
@@ -349,8 +366,12 @@ void coordenadasCelestes(){
 
 
 void posicionarAzimute(){
+  Serial.println("Azimute Anterior: ");
+  Serial.println(azim);   
   if (azim + (360 - Azimute_ajustado) < abs((Azimute_ajustado - azim) ) ) {
       pulsos_movimentacao_azimute = (azim + (360 - Azimute_ajustado)  ) * 35.55;
+      Serial.print("Pulso Movimentacao Azimute: ");
+      Serial.println(pulsos_movimentacao_azimute);
       for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
         MotorPasso_X.step(-1);
         delay(10);
@@ -363,15 +384,18 @@ void posicionarAzimute(){
         delay(10);
       }
     }
-
     azim = Azimute_ajustado;
 }
 
 
 
 void posicionarElevacao(){
+  Serial.print("Elevevacao Anterior: ");
+  Serial.println(elev);
   pulsos_movimentacao_elevacao = (elev - alfa_elevacao ) * 44.44 ; //Define o pulso da movimentacao da elevacao
   ha = pulsos_movimentacao_elevacao / (abs (pulsos_movimentacao_elevacao)); //Define o sentido da Elevacao
+  Serial.print("Pulso Movimentacao Elevacao: ");
+  Serial.println(pulsos_movimentacao_elevacao);
     for (i = 0; i <= (abs (pulsos_movimentacao_elevacao)); i++) {
       MotorPasso_Y.step(ha);
       delay(10);
@@ -392,7 +416,7 @@ void coletarSensores(){
       Serial.print("Valor Anlogico Piranometro: ");
       Serial.println(valorSensor_piran);
       valorSensor_piran = map (valorSensor_piran, 0, 1023, 0, 4000);
-      global_real = valorSensor_piran;/// (cos(alfa_elevacao*0.0174533)));
+      global_real = valorSensor_piran/(cos(alfa_elevacao*0.0174533));
     //RADIAÇÃO DIFUSA
       delay(100);
       Rad_difusa = global_real - valorSensor_pirel ; //Valor da radiação difusa
@@ -401,9 +425,10 @@ void coletarSensores(){
 
 
 void printTela(){
+  horaAtual();
   Serial.println();
   Serial.print (" Azimute calculado: "); Serial.println (Azimute_ajustado); Serial.print (" Elevacao calculado: "); Serial.println (alfa_elevacao);
-  Serial.print (" hora: "); Serial.print (h); Serial.print (":"); Serial.print (m); Serial.print (":"); Serial.println (s);
+  Serial.print (" Hora: "); Serial.print (h); Serial.print (":"); Serial.print (m); Serial.print (":"); Serial.println (s);
   Serial.print (" Rad Direta: "); Serial.println (valorSensor_pirel); Serial.print (" Rad global: "); Serial.println (global_real); 
   Serial.print (" Rad difusa: "); Serial.println (Rad_difusa);
 }
@@ -426,7 +451,7 @@ void zeramentoElevacao(){
       MotorPasso_Y.step(1); //Anda no senti antihorario
       delay(10); //Frequencia de pulso para motor
     }
-    else if ((roll == 1)and(azimuth == 115)){
+    else if (roll == 1){
       estadoCodigo = 1;
     }
 }
@@ -445,8 +470,8 @@ void zeramentoPosicao(){
     }
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
-  else if ((azimuth == 115)and(roll==1)){
-    estadoCodigo = 1;
+  else if (azimuth == 115){
+    estadoCodigo = 2;
   }
 }
 
