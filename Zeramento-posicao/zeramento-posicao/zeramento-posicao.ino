@@ -1,14 +1,31 @@
+/*
+* Rastreador Solar  Laboratório de Conversao de Energias - Universidade Federal de Sergipe
+* Discentes: José Orlando Rodrigues Santos, Paulo Vitor Aragão Silva, Henrique Silveira Alves Marques
+* Orientador: Douglas Bressan Riffel
+* 
+* Descrição resumida do projeto
+* Data: 10/10/2018
+* 
+* Fonte de dados, ou projeto utilizado como base
+* 
+* I/Os Utilizadas:
+*
+* Última Alteração:
+* Alterações para teste: ArmazenarSD(); -> Colocar nome do arquivo , initRTC() -> Ajusta horário e dia
+*/
+
+
 #include <Wire.h>
 #include <MechaQMC5883.h>
 #include <Stepper.h>
-
+#include <SD.h>
 #include <Arduino.h>
 #include <math.h>
 #include <DS1307.h>
 #include <MechaQMC5883.h>
 #include <MPU6050.h>
 #include <SPI.h>
-#include <SD.h>
+
 
 //Definindo Constantes
   //Definindo entradas do motor de passo X:
@@ -63,6 +80,10 @@
          int sensor_pirel = 1; //pino referente ao pireliômetro
          int sensor_piran = 0; //pino referente ao piranômetro
 
+         /*Variavel do cartao SD*/
+         File dataFile;
+         const int chipSelect = 53;  //Variavel para o SDCard
+
          
     //Motor de Passo:
       int SpRX = 12800; //Definindo pulso por revolução do motor X
@@ -102,7 +123,7 @@ void setup() {
   initMPU();//Inicializando Sensor de Elevação
   initRTC(); //Inicializando o sensor RTC
   initDeclinacao();//Calculo por formula da declinacao
-  
+  initSDCard(); //Inicializacao do cartao SD
   
   MotorPasso_X.setSpeed(velocidade); //Configurando motor de passo com velocidade
   MotorPasso_Y.setSpeed(velocidade); //Configurando motor de passo com velocidade
@@ -142,6 +163,7 @@ void loop() {
     Serial.print("Elevacao Ajustado: ");
     Serial.println(alfa_elevacao);
     printTela();
+    armazenarSD();
     delay(360000);
     // statements
     break;
@@ -150,7 +172,16 @@ void loop() {
 }
 
 
-
+void initSDCard(){
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    // don't do anything more:
+    while (1);
+  }
+}
 
 void initRTC(){
   rtc.halt(false);
@@ -408,4 +439,36 @@ void zeramentoPosicao(){
   else if ((azimuth == 115)and(roll==1)){
     estadoCodigo = 1;
   }
+}
+
+
+void armazenarSD(){
+   dataFile = SD.open("teste30.txt", FILE_WRITE); // coloco o nome do arquivo e abro ele
+    // if the file is available, write to it:
+    if (dataFile) {
+      dataFile.print("Hora"); //salvo a variável "a" por exemplo
+      dataFile.print( "  "); // espaço para ter em colunas
+      dataFile.print("Data"); //salvo a variável "a" por exemplo
+      dataFile.print( "  "); // espaço para ter em colunas
+      dataFile.print("radiação direta"); //salvo a variável "a" por exemplo
+      dataFile.print( "  "); // espaço para ter em colunas
+      dataFile.print("radiação Global");
+      dataFile.print( "  ");
+      dataFile.println("radiação difusa");
+
+      dataFile.print(h); dataFile.print( ":"); dataFile.print(m); dataFile.print( ":"); dataFile.print(s);
+      dataFile.print( "  "); // espaço para ter em colunas
+      dataFile.print(dia);  dataFile.print( ":"); dataFile.print(mes); dataFile.print( ":"); dataFile.print(ano);
+      dataFile.print( "  "); // espaço para ter em colunas
+      dataFile.print(valorSensor_pirel); //salvo a variável "a" por exemplo
+      dataFile.print( "  "); // espaço para ter em colunas
+      dataFile.print(valorSensor_piran);
+      dataFile.print( "  ");
+      dataFile.println(Rad_difusa);
+      delay(100);
+      dataFile.close(); // fecha o arquivo
+    }
+    // if the file isn't open, pop up an error:
+    else {
+    }
 }
