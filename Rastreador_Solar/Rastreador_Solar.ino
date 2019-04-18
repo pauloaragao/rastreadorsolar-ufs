@@ -79,9 +79,10 @@
          int valorSensor_pirel, valorSensor_piran, Rad_difusa;
          int sensor_pirel = 1; //pino referente ao pireliômetro
          int sensor_piran = 0; //pino referente ao piranômetro
+         int global_real; //Variavel para a coleta da irradiacao global
 
          /*Variavel do cartao SD*/
-         File dataFile;
+         File dataFile;//Variavel para armazenamento do arquivo
          const int chipSelect = 53;  //Variavel para o SDCard
 
          
@@ -162,9 +163,10 @@ void loop() {
     Serial.println(Azimute_ajustado);
     Serial.print("Elevacao Ajustado: ");
     Serial.println(alfa_elevacao);
+    coletarSensores();
     printTela();
     armazenarSD();
-    delay(360000);
+    delay(5000);
     // statements
     break;
   }
@@ -379,14 +381,21 @@ void posicionarElevacao(){
 
 void coletarSensores(){
   //PIRELIÔMETRO
+      valorSensor_pirel = 0;
+      valorSensor_piran = 0;
       valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+      Serial.print("Valor Anlogico Pireliometro: ");
+      Serial.println(valorSensor_pirel);
       valorSensor_pirel = map (valorSensor_pirel, 0, 1023, 0, 4000);
     //PIRANÔMETRO
       valorSensor_piran = analogRead(sensor_piran); //ler os valores do pireliômetro
+      Serial.print("Valor Anlogico Piranometro: ");
+      Serial.println(valorSensor_piran);
       valorSensor_piran = map (valorSensor_piran, 0, 1023, 0, 4000);
+      global_real = valorSensor_piran;/// (cos(alfa_elevacao*0.0174533)));
     //RADIAÇÃO DIFUSA
       delay(100);
-      Rad_difusa = valorSensor_piran - valorSensor_pirel ; //Valor da radiação difusa
+      Rad_difusa = global_real - valorSensor_pirel ; //Valor da radiação difusa
       delay (200); // delay para estabilizar
 }
 
@@ -395,7 +404,7 @@ void printTela(){
   Serial.println();
   Serial.print (" Azimute calculado: "); Serial.println (Azimute_ajustado); Serial.print (" Elevacao calculado: "); Serial.println (alfa_elevacao);
   Serial.print (" hora: "); Serial.print (h); Serial.print (":"); Serial.print (m); Serial.print (":"); Serial.println (s);
-  Serial.print (" Rad Direta: "); Serial.println (valorSensor_pirel); Serial.print (" Rad global: "); Serial.println (valorSensor_piran); 
+  Serial.print (" Rad Direta: "); Serial.println (valorSensor_pirel); Serial.print (" Rad global: "); Serial.println (global_real); 
   Serial.print (" Rad difusa: "); Serial.println (Rad_difusa);
 }
 
@@ -462,7 +471,7 @@ void armazenarSD(){
       dataFile.print( "  "); // espaço para ter em colunas
       dataFile.print(valorSensor_pirel); //salvo a variável "a" por exemplo
       dataFile.print( "  "); // espaço para ter em colunas
-      dataFile.print(valorSensor_piran);
+      dataFile.print(global_real);
       dataFile.print( "  ");
       dataFile.println(Rad_difusa);
       delay(100);
