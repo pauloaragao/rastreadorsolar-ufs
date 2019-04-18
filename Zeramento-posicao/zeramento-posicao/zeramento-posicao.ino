@@ -57,7 +57,12 @@
          int pulsos_movimentacao_elevacao; //variavel para pulsos de movimentacao
          int elev = 0;
          int ha; //Variavel para definicao do sentido da elevacao
-         int correcao_e;
+
+         /*Variaveis para coleta dos sensores*/
+         int valorSensor_pirel, valorSensor_piran, Rad_difusa;
+         int sensor_pirel = 1; //pino referente ao pireliômetro
+         int sensor_piran = 0; //pino referente ao piranômetro
+
          
     //Motor de Passo:
       int SpRX = 12800; //Definindo pulso por revolução do motor X
@@ -109,6 +114,7 @@ void loop() {
     case (0):
     zeramentoElevacao();
     zeramentoPosicao();
+    Serial.print("Azimute: ");
     Serial.println(azimuth);
     Serial.print("Estado Logico: ");
     Serial.println(estadoCodigo);
@@ -121,7 +127,7 @@ void loop() {
     Serial.println(azimuth);
     Serial.print("DDA: ");
     Serial.println(dda);
-    delay(10000);
+    delay(5000);
     estadoCodigo = 2;      
     break;
   default:
@@ -135,12 +141,16 @@ void loop() {
     Serial.println(Azimute_ajustado);
     Serial.print("Elevacao Ajustado: ");
     Serial.println(alfa_elevacao);
+    printTela();
     delay(360000);
     // statements
     break;
   }
 
 }
+
+
+
 
 void initRTC(){
   rtc.halt(false);
@@ -335,6 +345,29 @@ void posicionarElevacao(){
     }
     elev = alfa_elevacao;
 }
+
+void coletarSensores(){
+  //PIRELIÔMETRO
+      valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+      valorSensor_pirel = map (valorSensor_pirel, 0, 1023, 0, 4000);
+    //PIRANÔMETRO
+      valorSensor_piran = analogRead(sensor_piran); //ler os valores do pireliômetro
+      valorSensor_piran = map (valorSensor_piran, 0, 1023, 0, 4000);
+    //RADIAÇÃO DIFUSA
+      delay(100);
+      Rad_difusa = valorSensor_piran - valorSensor_pirel ; //Valor da radiação difusa
+      delay (200); // delay para estabilizar
+}
+
+
+void printTela(){
+  Serial.println();
+  Serial.print (" Azimute calculado: "); Serial.println (Azimute_ajustado); Serial.print (" Elevacao calculado: "); Serial.println (alfa_elevacao);
+  Serial.print (" hora: "); Serial.print (h); Serial.print (":"); Serial.print (m); Serial.print (":"); Serial.println (s);
+  Serial.print (" Rad Direta: "); Serial.println (valorSensor_pirel); Serial.print (" Rad global: "); Serial.println (valorSensor_piran); 
+  Serial.print (" Rad difusa: "); Serial.println (Rad_difusa);
+}
+
 
 void zeramentoElevacao(){
   // Read normalized values
