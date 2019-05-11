@@ -2,14 +2,10 @@
   Rastreador Solar - Laboratório de Conversao de Energia - Universidade Federal de Sergipe
   Discentes: José Orlando Rodrigues Santos, Paulo Vitor Aragão Silva, Henrique Silveira Alves Marques
   Orientador: Douglas Bressan Riffel
-
   Descrição resumida do projeto
   Data: 10/10/2018
-
   Fonte de dados, ou projeto utilizado como base
-
   I/Os Utilizadas:
-
   Última Alteração: 18/04/2019
   Alterações para teste: ArmazenarSD(); -> Colocar nome do arquivo , initRTC() -> Ajusta horário e dia
 */
@@ -74,6 +70,7 @@ double psi_azimute_graus ; //Angulo de azimute em graus
 int pulsos_movimentacao_elevacao; //variavel para pulsos de movimentacao
 double elev = 0;
 int ha; //Variavel para definicao do sentido da elevacao
+int hb; //Variavel para definicao do sentido do azimute 
 
 /*Variaveis para coleta dos sensores*/
 int valorSensor_pirel, valorSensor_piran, Rad_difusa;
@@ -129,7 +126,7 @@ void setup() {
 
   MotorPasso_X.setSpeed(velocidade); //Configurando motor de passo com velocidade
   MotorPasso_Y.setSpeed(velocidade); //Configurando motor de passo com velocidade
-  delay(5000);
+  delay(2000);
   estadoCodigo = 0;
 }
 
@@ -180,7 +177,8 @@ void loop() {
       cont++;
       Serial.print("Contador do Estágio de Coleta: ");
       Serial.println(cont);
-      if (cont == 240) {
+      //if (cont == 240) 
+      if (cont == 120){
         estadoCodigo = 2;
         Serial.println("_______________________________________________________________________________________");
       }
@@ -205,9 +203,9 @@ void initSDCard() {
 
 void initRTC() {
   rtc.halt(false);
-  rtc.setDOW(THURSDAY);       //Define o dia da semana
-  rtc.setTime(14, 29, 00);    //Define o horario
-  rtc.setDate(18, 04, 2019);  //Define o dia, mes e ano
+  //rtc.setDOW(WEDNESDAY);       //Define o dia da semana
+  //rtc.setTime(10, 06, 00);    //Define o horario
+  //rtc.setDate(24, 04, 2019);  //Define o dia, mes e ano
   //Definicoes do pino SQW/Out
   rtc.setSQWRate(SQW_RATE_1);
   rtc.enableSQW(true);
@@ -369,17 +367,18 @@ void coordenadasCelestes() {
 void posicionarAzimute() {
   Serial.println("Azimute Anterior: ");
   Serial.println(azim);
-  if (azim + (360 - Azimute_ajustado) < abs((Azimute_ajustado - azim) ) ) {
-    pulsos_movimentacao_azimute = (azim + (360 - Azimute_ajustado)  ) * 35.55;
+  if (azim + (360 - Azimute_ajustado) < (abs((Azimute_ajustado - azim) ) )) {
+    pulsos_movimentacao_azimute = (abs((azim + (360 - Azimute_ajustado) )) * 35.55);
     for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
       MotorPasso_X.step(-1);
       delay(10);
     }
   }
   else   {
-    pulsos_movimentacao_azimute = (Azimute_ajustado - azim) * 35.55 ;
+    pulsos_movimentacao_azimute = ((abs (Azimute_ajustado - azim))*35.55) ;
+  hb =  (Azimute_ajustado - azim) / (abs (Azimute_ajustado - azim)) ;
     for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
-      MotorPasso_X.step(1);
+      MotorPasso_X.step(hb);
       delay(10);
     }
   }
@@ -387,8 +386,6 @@ void posicionarAzimute() {
   Serial.println(pulsos_movimentacao_azimute);
   azim = Azimute_ajustado;
 }
-
-
 
 void posicionarElevacao() {
   Serial.print("Elevevacao Anterior: ");
@@ -417,7 +414,7 @@ void coletarSensores() {
   Serial.print("Valor Anlogico Piranometro: ");
   Serial.println(valorSensor_piran);
   valorSensor_piran = map (valorSensor_piran, 0, 1023, 0, 4000);
-  global_real = valorSensor_piran / (cos(alfa_elevacao * 0.0174533));
+  global_real = valorSensor_piran;// * (cos((90 -alfa_elevacao) * 0.0174533)));
   //RADIAÇÃO DIFUSA
   delay(100);
   Rad_difusa = global_real - valorSensor_pirel ; //Valor da radiação difusa
@@ -442,43 +439,43 @@ void zeramentoElevacao() {
   Serial.print("Roll: ");
   Serial.println(roll);
 
-  if (roll < 1 ) { //Testa se está no limite inferior
+  if (roll < 2 ) { //Testa se está no limite inferior
     //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
     MotorPasso_Y.step(-1); //Anda sentido horario
     delay(10); //Frequencia de pulso para o motor
   }
-  else if (roll > 1) { //Testa se está no limite superior
+  else if (roll > 2) { //Testa se está no limite superior
     //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
     MotorPasso_Y.step(1); //Anda no senti antihorario
     delay(10); //Frequencia de pulso para motor
   }
-  else if (roll == 1) {
+  else if (roll == 2) {
     estadoCodigo = 1;
   }
 }
 
 void zeramentoPosicao() {
   qmc.read(&qmcx, &qmcy, &qmcz, &azimuth); //Print teste posicao
-  if (azimuth < 115 ) { //Testa se está no limite inferior
+  if (azimuth < 135 ) { //Testa se está no limite inferior
     //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
     MotorPasso_X.step(1); //Anda sentido horario
     delay(10); //Frequencia de pulso para o motor
   }
-  else if ( azimuth > 117) { //Testa se está no limite superior
+  else if ( azimuth > 137) { //Testa se está no limite superior
     //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
     MotorPasso_X.step(-1); //Anda no senti antihorario
     delay(10); //Frequencia de pulso para motor
   }
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
-  else if (azimuth == 115) {
+  else if (azimuth == 135) {
     estadoCodigo = 2;
   }
 }
 
 
 void armazenarSD() {
-  dataFile = SD.open("teste30.txt", FILE_WRITE); // coloco o nome do arquivo e abro ele
+  dataFile = SD.open("teste29.txt", FILE_WRITE); // coloco o nome do arquivo e abro ele
   // if the file is available, write to it:
   if (dataFile) {
     dataFile.print("Hora"); //salvo a variável "a" por exemplo
