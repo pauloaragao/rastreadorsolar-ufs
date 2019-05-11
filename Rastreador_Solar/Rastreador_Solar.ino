@@ -102,7 +102,7 @@ int calibracao = 10;
 //Sensor RTC
 //RTC
 /*Function: initRTC and calcularDDA*/
-DS1307 rtc(A2, A3); //Portas Analogicas A2 e A3 RTC
+DS1307 rtc(A10 , A11); //Portas Analogicas A2 e A3 RTC
 String data, hora, h, m, s, dia, mes, ano; //Variaveis para RTC
 float hora_bb; // HH:MM em somente horas (Conversao)
 float dda;// Número do dia ano
@@ -146,7 +146,7 @@ void loop() {
       break;
     case (1):
       zeramentoPosicao();
-      Serial.print("___________________________");
+      Serial.println("___________________________");
       Serial.print("Estado Logico: ");
       Serial.println(estadoCodigo);
       Serial.print("Azimute: ");
@@ -154,7 +154,7 @@ void loop() {
       break;
 
     case (2):
-      Serial.print("___________________________");
+      Serial.println("___________________________");
       Serial.print("Estado Logico: ");
       Serial.println(estadoCodigo);
       qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
@@ -176,7 +176,7 @@ void loop() {
       Serial.println(alfa_elevacao);
       break;
     case(3):
-      Serial.print("___________________________");
+      Serial.println  ("___________________________");
       Serial.print("Estado Logico: ");
       Serial.println(estadoCodigo);
       valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
@@ -232,7 +232,7 @@ void initSDCard() {
 void initRTC() {
   rtc.halt(false);
   rtc.setDOW(SATURDAY);       //Define o dia da semana
-  rtc.setTime(14, 59, 00);    //Define o horario
+  rtc.setTime(16, 19, 00);    //Define o horario
   rtc.setDate(11, 05, 2019);  //Define o dia, mes e ano
   //Definicoes do pino SQW/Out
   rtc.setSQWRate(SQW_RATE_1);
@@ -404,7 +404,7 @@ void posicionarAzimute() {
   }
   else   {
     pulsos_movimentacao_azimute = ((abs (Azimute_ajustado - azim))*35.55) ;
-  hb =  (Azimute_ajustado - azim) / (abs (Azimute_ajustado - azim)) ;
+    hb =  (Azimute_ajustado - azim) / (abs (Azimute_ajustado - azim)) ;
     for (j = 0; j <= pulsos_movimentacao_azimute; j++) {
       MotorPasso_X.step(hb);
       delay(10);
@@ -484,19 +484,19 @@ void zeramentoElevacao() {
 
 void zeramentoPosicao() {
   qmc.read(&qmcx, &qmcy, &qmcz, &azimuth); //Print teste posicao
-  if (azimuth < 135 ) { //Testa se está no limite inferior
+  if (azimuth < 143 ) { //Testa se está no limite inferior
     //qmc.read(&qmcx, &qmcy, &qmcz,&azimuth); //Print teste posicao
     MotorPasso_X.step(1); //Anda sentido horario
     delay(10); //Frequencia de pulso para o motor
   }
-  else if ( azimuth > 137) { //Testa se está no limite superior
+  else if ( azimuth > 145) { //Testa se está no limite superior
     //qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
     MotorPasso_X.step(-1); //Anda no senti antihorario
     delay(10); //Frequencia de pulso para motor
   }
   //Serial.print("Azimuth: ");
   //Serial.println(azimuth);
-  else if (azimuth == 135) {
+  else if (azimuth == 143) {
     estadoCodigo = 2;
   }
 }
