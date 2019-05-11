@@ -25,16 +25,16 @@
 
 //Definindo Constantes
 //Definindo entradas do motor de passo X:
-#define IN2 2
-#define IN3 3
-#define IN5 5
-#define IN6 6
+#define IN2 22
+#define IN3 23
+#define IN5 25
+#define IN6 26
 
 //Definindo entradas do motor de passo Y:
-#define IN7 7
-#define IN8 8
-#define IN9 9
-#define IN10 10
+#define IN7 27
+#define IN8 28
+#define IN9 29
+#define IN10 30
 
 //Variáveis globais
 //Variaveis auxiliares
@@ -74,8 +74,8 @@ int hb; //Variavel para definicao do sentido do azimute
 
 /*Variaveis para coleta dos sensores*/
 int valorSensor_pirel, valorSensor_piran, Rad_difusa;
-int sensor_pirel = 1; //pino referente ao pireliômetro
-int sensor_piran = 0; //pino referente ao piranômetro
+int sensor_pirel = 9; //pino referente ao pireliômetro
+int sensor_piran = 8; //pino referente ao piranômetro
 int global_real; //Variavel para a coleta da irradiacao global
 
 /*Variavel do cartao SD*/
@@ -83,6 +83,9 @@ File dataFile;//Variavel para armazenamento do arquivo
 const int chipSelect = 53;  //Variavel para o SDCard
 int cont; //cont é para armazenar passos de coleta
 
+/*Variaveis para o refinamento*/
+int refinamento[3];
+int caranguejo[2];
 
 //Motor de Passo:
 int SpRX = 12800; //Definindo pulso por revolução do motor X
@@ -143,12 +146,15 @@ void loop() {
       break;
     case (1):
       zeramentoPosicao();
+      Serial.print("___________________________");
       Serial.print("Estado Logico: ");
       Serial.println(estadoCodigo);
       Serial.print("Azimute: ");
       Serial.println(azimuth);
       break;
+
     case (2):
+      Serial.print("___________________________");
       Serial.print("Estado Logico: ");
       Serial.println(estadoCodigo);
       qmc.read(&qmcx, &qmcy, &qmcz, &azimuth);//Print teste posicao
@@ -169,7 +175,29 @@ void loop() {
       Serial.print("Elevacao Ajustado: ");
       Serial.println(alfa_elevacao);
       break;
+    case(3):
+      Serial.print("___________________________");
+      Serial.print("Estado Logico: ");
+      Serial.println(estadoCodigo);
+      valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+      refinamento[0] = map (valorSensor_pirel, 0, 1023, 0, 4000);
+
+      andarDireita();
+      andarEsquerda();    
+      ajusteCentral();
+
+      //Print dos valoress
+        Serial.print("Inicial: "); Serial.print(refinamento[0]);
+        Serial.print(" Direita: "); Serial.print(refinamento[1]);
+        Serial.print(" Esquerda: "); Serial.println(refinamento[2]);
+
+      caranguejoDireita();
+      caranguejoEsquerda();
+    
+      estadoCodigo = 4;
+      break;
     default:
+      Serial.println();
       Serial.println();
       coletarSensores();
       printTela();
@@ -203,9 +231,9 @@ void initSDCard() {
 
 void initRTC() {
   rtc.halt(false);
-  //rtc.setDOW(WEDNESDAY);       //Define o dia da semana
-  //rtc.setTime(10, 06, 00);    //Define o horario
-  //rtc.setDate(24, 04, 2019);  //Define o dia, mes e ano
+  rtc.setDOW(SATURDAY);       //Define o dia da semana
+  rtc.setTime(14, 59, 00);    //Define o horario
+  rtc.setDate(11, 05, 2019);  //Define o dia, mes e ano
   //Definicoes do pino SQW/Out
   rtc.setSQWRate(SQW_RATE_1);
   rtc.enableSQW(true);
@@ -503,4 +531,94 @@ void armazenarSD() {
   // if the file isn't open, pop up an error:
   else {
   }
+}
+
+
+void andarDireita(){
+     //Um passo direita
+     for (j = 0; j <= 36; j++) {
+        MotorPasso_X.step(-1); // + 1 GRAU PARA DIREITA
+        delay(10);
+      }
+      delay(2000);
+      valorSensor_pirel = 0;
+      valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+      refinamento[1] = map (valorSensor_pirel, 0, 1023, 0, 4000);
+}
+
+void andarEsquerda(){
+  //Dois passos para esquerda
+  for (j = 0; j <= 71; j++) {
+    MotorPasso_X.step(1); // + 1 GRAU PARA ESQUERDA
+    delay(10);
+   }
+   delay(2000);
+   valorSensor_pirel = 0;
+   valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+   refinamento[2] = map (valorSensor_pirel, 0, 1023, 0, 4000);
+}
+
+void ajusteCentral(){
+ delay(2000);
+      //Ajuste central
+      for (j = 0; j <= 36; j++) {
+        MotorPasso_X.step(-1); // + 1 GRAU PARA DIREITA
+        delay(10);
+      }
+
+}
+
+
+void caranguejoDireita(){
+      if(refinamento[1] > refinamento[0]){
+     /* for (j = 0; j <= 36; j++) {
+        myStepper_a.step(-1); // + 1 GRAU PARA DIREITA
+        delay(10);
+      }*/
+      Serial.println("Direita");
+      caranguejo[0] = refinamento[0];
+      caranguejo [1] = 4000;
+      while(caranguejo[1] > caranguejo[0]){
+        valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+        caranguejo[0] = map (valorSensor_pirel, 0, 1023, 0, 4000);
+        for (j = 0; j <= 7; j++) {
+          MotorPasso_X.step(-1); // + 1 GRAU PARA DIREITA
+          delay(10);
+        }
+        delay(2000);
+        valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+        caranguejo[1] = map (valorSensor_pirel, 0, 1023, 0, 4000);
+        Serial.print("Caranguejo 0: "); Serial.println(caranguejo[0]);
+        Serial.print("Caranguejo 1: "); Serial.println(caranguejo[1]);
+        Serial.println("----->");
+      }
+       Serial.println("SEGUIDOR SOLAR REFINADO");
+    }
+}
+
+void caranguejoEsquerda(){
+      if(refinamento[2] > refinamento[0]){
+      /*for (j = 0; j <= 36; j++) {
+        myStepper_a.step(1); // - 1 GRAU PARA ESQUEDA
+        delay(10);
+      }*/
+      Serial.println("Esquerda");
+       caranguejo[0] = refinamento[0];
+       caranguejo [1] = 4000;
+      while(caranguejo[1] > caranguejo[0]){
+        valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+        caranguejo[0] = map (valorSensor_pirel, 0, 1023, 0, 4000);
+        for (j = 0; j <= 7; j++) {
+          MotorPasso_X.step(1); // + 1 GRAU PARA DIREITA
+          delay(10);
+        }
+        delay(2000);
+        valorSensor_pirel = analogRead(sensor_pirel); //ler os valores do pireliômetro
+        caranguejo[1] = map (valorSensor_pirel, 0, 1023, 0, 4000);
+        Serial.print("Caranguejo 0: "); Serial.println(caranguejo[0]);
+        Serial.print("Caranguejo 1: "); Serial.println(caranguejo[1]);
+        Serial.println("<-----");
+      }
+     Serial.println("SEGUIDOR SOLAR REFINADO");
+    }
 }
